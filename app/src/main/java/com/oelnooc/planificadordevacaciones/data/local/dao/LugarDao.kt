@@ -17,4 +17,7 @@ interface LugarDao {
 
     @Delete
     suspend fun delete(lugar: Lugar)
+
+    @Query("SELECT * FROM lugar WHERE id = :lugarId")
+    suspend fun getLugarById(lugarId: Int): Lugar?
 }

@@ -47,7 +47,6 @@ fun PantallaAgregarLugar(
             onValueChange = { foto = it },
             label = { Text("URL de la foto") }
         )
-        // Campo de orden (tipo Int)
         OutlinedTextField(
             value = orden.toString(),
             onValueChange = { newValue ->
@@ -76,10 +75,9 @@ fun PantallaAgregarLugar(
             label = { Text("Ubicación") }
         )
 
-        // Botón guardar
         Button(onClick = {
             val lugar = Lugar(
-                id = 0,  // ID será auto-generado en la base de datos
+                id = 0,
                 nombre = nombre,
                 foto = foto,
                 costoPorNoche = costoPorNoche,
@@ -94,7 +92,6 @@ fun PantallaAgregarLugar(
             Text("Guardar")
         }
 
-        // Botón cancelar
         Button(onClick = onCancelar) {
             Text("Cancelar")
         }

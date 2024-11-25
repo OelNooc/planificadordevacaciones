@@ -1,6 +1,5 @@
 package com.oelnooc.planificadordevacaciones.ui.viewmodel
 
-import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -24,7 +23,6 @@ class LugarViewModel(
     val indicadores: StateFlow<Indicadores?> = _indicadores
 
     private val _errorMessage = MutableStateFlow<String?>(null)
-    val errorMessage: StateFlow<String?> = _errorMessage
 
     private val _lugarSeleccionado = MutableStateFlow<Lugar?>(null)
     val lugarSeleccionado: StateFlow<Lugar?> = _lugarSeleccionado
@@ -37,6 +35,13 @@ class LugarViewModel(
     fun loadLugares() {
         viewModelScope.launch {
             _lugares.value = lugarRepository.getLugares()
+        }
+    }
+
+    fun loadLugarById(lugarId: Int) {
+        viewModelScope.launch {
+            val lugar = lugarRepository.getLugarById(lugarId)
+            _lugarSeleccionado.value = lugar
         }
     }
 
@@ -92,5 +97,17 @@ class LugarViewModel(
     fun abrirGeolocalizacion(lugar: Lugar): Pair<Double, Double> {
         val (lat, lon) = lugar.ubicacion.split(",").map { it.trim().toDoubleOrNull() ?: 0.0 }
         return Pair(lat, lon)
+    }
+
+    fun actualizarFotoUsuario(lugarId: Int, nuevaFotoUri: String) {
+        viewModelScope.launch {
+            val lugar = _lugares.value.find { it.id == lugarId }
+            if (lugar != null) {
+                val lugarActualizado = lugar.copy(fotoUsuario = nuevaFotoUri)
+                lugarRepository.updateLugar(lugarActualizado)
+                loadLugares()
+                loadLugarById(lugarId)
+            }
+        }
     }
 }

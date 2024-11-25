@@ -1,14 +1,20 @@
 package com.oelnooc.planificadordevacaciones.ui.view
 
+import android.Manifest
 import android.app.AlertDialog
 import android.content.Context
-import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
 import android.util.Log
 import android.widget.Button
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -17,6 +23,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
@@ -28,6 +36,7 @@ import com.oelnooc.planificadordevacaciones.data.local.repository.LugarRepositor
 import com.oelnooc.planificadordevacaciones.data.local.room.AppDatabase
 import com.oelnooc.planificadordevacaciones.data.remote.repository.IndicadorClientRepo
 import com.oelnooc.planificadordevacaciones.ui.screens.PantallaAgregarLugar
+import com.oelnooc.planificadordevacaciones.ui.screens.PantallaDetalle
 import com.oelnooc.planificadordevacaciones.ui.screens.PantallaEditarLugar
 import com.oelnooc.planificadordevacaciones.ui.screens.PantallaPrincipal
 import com.oelnooc.planificadordevacaciones.ui.theme.PlanificadorDeVacacionesTheme
@@ -38,9 +47,17 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
+import java.io.File
+import java.io.IOException
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
     private lateinit var viewModel: LugarViewModel
+    private lateinit var permissionLauncher: ActivityResultLauncher<Array<String>>
+    private lateinit var takePictureLauncher: ActivityResultLauncher<Uri>
+    private var photoUri: Uri? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,6 +65,30 @@ class MainActivity : ComponentActivity() {
         Configuration.getInstance().userAgentValue = "PlanificadorDeVacaciones/1.0"
 
         enableEdgeToEdge()
+
+        permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
+            val cameraPermissionGranted = permissions[Manifest.permission.CAMERA] == true
+            if (!cameraPermissionGranted) {
+                Toast.makeText(this, "Se requiere acceso a la cámara", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        takePictureLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+            if (success && photoUri != null) {
+                Log.d("MainActivity", "Foto tomada con éxito: ${photoUri.toString()}")
+                val lugarSeleccionado = viewModel.lugarSeleccionado.value
+                if (lugarSeleccionado != null) {
+                    viewModel.actualizarFotoUsuario(lugarSeleccionado.id, photoUri.toString())
+                    viewModel.loadLugarById(lugarSeleccionado.id)
+                } else {
+                    Log.e("MainActivity", "No se seleccionó un lugar para asignar la foto")
+                }
+            } else {
+                Log.e("MainActivity", "Error al tomar la foto")
+            }
+        }
+
+
 
         val lugarRepository = LugarRepository(AppDatabase.getDatabase(application).lugarDao())
         val indicadorRepo = IndicadorClientRepo()
@@ -102,9 +143,66 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                         }
+
+                        composable("pantalla_detalle/{lugarId}") { backStackEntry ->
+                            val lugarId = backStackEntry.arguments?.getString("lugarId")?.toIntOrNull()
+                            val lugar = viewModel.obtenerLugarPorId(lugarId ?: 0)
+
+                            if (lugar != null) {
+                                PantallaDetalle(
+                                    lugar = lugar,
+                                    onEditarClick = {
+                                        navController.navigate("pantalla_editar/${lugar.id}")
+                                    },
+                                    onEliminarClick = {
+                                        viewModel.eliminarLugar(lugar)
+                                        navController.popBackStack()
+                                    },
+                                    onTomarFotoClick = {
+                                        viewModel.seleccionarLugar(lugar)
+                                        capturePhoto()
+                                    },
+                                    viewModel = viewModel
+                                )
+                            } else {
+                                navController.popBackStack()
+                            }
+                        }
                     }
                 }
             }
+        }
+    }
+
+    private fun capturePhoto() {
+        if (checkPermissions()) {
+            val photoFile = createImageFile()
+            if (photoFile != null) {
+                val localPhotoUri = FileProvider.getUriForFile(this, "$packageName.fileprovider", photoFile)
+                photoUri = localPhotoUri
+                takePictureLauncher.launch(localPhotoUri)
+            } else {
+                Toast.makeText(this, "Error al crear el archivo de imagen", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            permissionLauncher.launch(arrayOf(Manifest.permission.CAMERA))
+        }
+    }
+
+
+    private fun checkPermissions(): Boolean {
+        val cameraPermission = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+        return cameraPermission == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun createImageFile(): File? {
+        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+        return try {
+            File.createTempFile("JPEG_${timestamp}_", ".jpg", storageDir)
+        } catch (e: IOException) {
+            Log.e("MainActivity", "Error al crear el archivo de imagen", e)
+            null
         }
     }
 }
@@ -122,7 +220,7 @@ fun App(
     PantallaPrincipal(
         lugares = lugares,
         onLugarClick = { lugar ->
-            viewModel.seleccionarLugar(lugar)
+            navController.navigate("pantalla_detalle/${lugar.id}")
         },
         onEditarClick = { lugar ->
             navController.navigate("pantalla_editar/${lugar.id}")

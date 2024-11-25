@@ -7,6 +7,8 @@ class LugarRepository(private val lugarDao: LugarDao) {
 
     suspend fun getLugares(): List<Lugar> = lugarDao.getAll()
 
+    suspend fun getLugarById(lugarId: Int): Lugar? = lugarDao.getLugarById(lugarId)
+
     suspend fun insertLugar(lugar: Lugar) = lugarDao.insert(lugar)
 
     suspend fun updateLugar(lugar: Lugar) = lugarDao.update(lugar)

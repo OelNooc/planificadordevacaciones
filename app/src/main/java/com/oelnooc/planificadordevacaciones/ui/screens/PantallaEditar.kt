@@ -25,9 +25,8 @@ fun PantallaEditarLugar(
     onCancelar: () -> Unit,
     viewModel: LugarViewModel
 ) {
-    val lugar = viewModel.obtenerLugarPorId(lugarId) // Obtener el lugar desde el ViewModel usando el ID
+    val lugar = viewModel.obtenerLugarPorId(lugarId)
 
-    // Si no encontramos el lugar, mostramos un mensaje o no hacemos nada
     if (lugar == null) {
         Text("Lugar no encontrado")
         return
@@ -35,7 +34,7 @@ fun PantallaEditarLugar(
 
     var nombre by remember { mutableStateOf(lugar.nombre) }
     var foto by remember { mutableStateOf(lugar.foto) }
-    var orden by remember { mutableIntStateOf(lugar.orden) }  // Orden inicial del lugar
+    var orden by remember { mutableIntStateOf(lugar.orden) }
     var costoPorNoche by remember { mutableStateOf(lugar.costoPorNoche) }
     var traslados by remember { mutableStateOf(lugar.traslados) }
     var comentarios by remember { mutableStateOf(lugar.comentarios) }
@@ -48,7 +47,6 @@ fun PantallaEditarLugar(
     ) {
         Text(text = "Editar Lugar", style = MaterialTheme.typography.bodySmall)
 
-        // Campos del formulario
         OutlinedTextField(
             value = nombre,
             onValueChange = { nombre = it },
@@ -59,11 +57,10 @@ fun PantallaEditarLugar(
             onValueChange = { foto = it },
             label = { Text("URL de la foto") }
         )
-        // Campo de orden (tipo Int)
         OutlinedTextField(
             value = orden.toString(),
             onValueChange = { newValue ->
-                orden = newValue.toIntOrNull() ?: 0  // Si no es un número válido, asigna 0
+                orden = newValue.toIntOrNull() ?: 0
             },
             label = { Text("Orden") }
         )
@@ -88,10 +85,9 @@ fun PantallaEditarLugar(
             label = { Text("Ubicación") }
         )
 
-        // Botón guardar
         Button(onClick = {
             val lugarActualizado = Lugar(
-                id = lugar.id,  // Mantenemos el ID original
+                id = lugar.id,
                 nombre = nombre,
                 foto = foto,
                 costoPorNoche = costoPorNoche,
@@ -106,7 +102,6 @@ fun PantallaEditarLugar(
             Text("Guardar")
         }
 
-        // Botón cancelar
         Button(onClick = onCancelar) {
             Text("Cancelar")
         }
