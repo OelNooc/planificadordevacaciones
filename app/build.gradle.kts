@@ -61,6 +61,10 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
 
+    implementation(libs.retrofit)
+    implementation(libs.converter.gson)
+    implementation(libs.gson)
+
     implementation("androidx.room:room-runtime:2.6.1")
     implementation(libs.androidx.runtime.livedata)
     kapt("androidx.room:room-compiler:2.6.1")

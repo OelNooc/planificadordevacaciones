@@ -1,4 +1,4 @@
-package com.oelnooc.planificadordevacaciones
+package com.oelnooc.planificadordevacaciones.ui.view
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
