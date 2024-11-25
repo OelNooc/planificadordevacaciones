@@ -14,5 +14,5 @@ data class Lugar(
     var comentarios: String,
     var ubicacion: String,
     var orden: Int,
-    var fotoUsuario: String
+    var fotoUsuario: String?
 )
