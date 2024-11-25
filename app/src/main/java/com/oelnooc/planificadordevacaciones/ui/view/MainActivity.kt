@@ -1,7 +1,11 @@
 package com.oelnooc.planificadordevacaciones.ui.view
 
+import android.app.AlertDialog
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
+import android.widget.Button
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -18,22 +22,31 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.oelnooc.planificadordevacaciones.R
+import com.oelnooc.planificadordevacaciones.data.local.model.Lugar
 import com.oelnooc.planificadordevacaciones.data.local.repository.LugarRepository
 import com.oelnooc.planificadordevacaciones.data.local.room.AppDatabase
 import com.oelnooc.planificadordevacaciones.data.remote.repository.IndicadorClientRepo
-import com.oelnooc.planificadordevacaciones.ui.screens.PantallaAgregarEditar
 import com.oelnooc.planificadordevacaciones.ui.screens.PantallaAgregarLugar
 import com.oelnooc.planificadordevacaciones.ui.screens.PantallaEditarLugar
 import com.oelnooc.planificadordevacaciones.ui.screens.PantallaPrincipal
 import com.oelnooc.planificadordevacaciones.ui.theme.PlanificadorDeVacacionesTheme
 import com.oelnooc.planificadordevacaciones.ui.viewmodel.LugarViewModel
 import com.oelnooc.planificadordevacaciones.ui.viewmodel.LugarViewModelFactory
+import org.osmdroid.config.Configuration
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
 
 class MainActivity : ComponentActivity() {
     private lateinit var viewModel: LugarViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        Configuration.getInstance().userAgentValue = "PlanificadorDeVacaciones/1.0"
+
         enableEdgeToEdge()
 
         val lugarRepository = LugarRepository(AppDatabase.getDatabase(application).lugarDao())
@@ -44,25 +57,23 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             PlanificadorDeVacacionesTheme {
-                val navController = rememberNavController()  // Aquí creamos el NavController
+                val navController = rememberNavController()
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     NavHost(
                         navController = navController,
                         startDestination = "pantalla_principal",
                         modifier = Modifier.padding(innerPadding)
                     ) {
-                        // Pantalla principal
                         composable("pantalla_principal") {
                             App(
                                 viewModel = viewModel,
                                 onAñadirClick = {
                                     navController.navigate("pantalla_agregar")
                                 },
-                                navController = navController // Pasamos el navController
+                                navController = navController
                             )
                         }
 
-                        // Pantalla de agregar lugar
                         composable("pantalla_agregar") {
                             PantallaAgregarLugar(
                                 onGuardar = { lugar ->
@@ -75,7 +86,6 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        // Pantalla de editar lugar
                         composable("pantalla_editar/{lugarId}") { backStackEntry ->
                             val lugarId = backStackEntry.arguments?.getString("lugarId")?.toIntOrNull()
                             if (lugarId != null) {
@@ -121,14 +131,38 @@ fun App(
             viewModel.eliminarLugar(lugar)
         },
         onGeolocalizacionClick = { lugar ->
-            val geoUri = viewModel.abrirGeolocalizacion(lugar)
-            val intent = Intent(Intent.ACTION_VIEW, geoUri).apply {
-                setPackage("com.google.android.apps.maps")
-            }
-            context.startActivity(intent)
+            showMapDialog(lugar, viewModel, context)
         },
-        onAñadirClick = {
+        onAniadirClick = {
             navController.navigate("pantalla_agregar")
-        }
+        },
+        viewModel
     )
+}
+
+fun showMapDialog(lugar: Lugar, viewModel: LugarViewModel, context: Context) {
+    val (lat, lon) = viewModel.abrirGeolocalizacion(lugar)
+
+    val dialog = AlertDialog.Builder(context).apply {
+        setView(R.layout.dialog_map)
+        setCancelable(true)
+    }.create()
+
+    dialog.show()
+
+    val mapView: MapView = dialog.findViewById(R.id.map_view)
+    val marker = Marker(mapView)
+    marker.position = GeoPoint(lat, lon)
+    Log.d("posicion", viewModel.abrirGeolocalizacion(lugar).toString())
+    marker.title = lugar.nombre
+
+    mapView.setTileSource(TileSourceFactory.MAPNIK)
+    mapView.controller.setZoom(15)
+    mapView.controller.setCenter(GeoPoint(lat, lon))
+    mapView.overlayManager.add(marker)
+
+    val closeButton: Button = dialog.findViewById(R.id.close_button)
+    closeButton.setOnClickListener {
+        dialog.dismiss()
+    }
 }

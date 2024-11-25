@@ -7,7 +7,7 @@ import retrofit2.Call
 class IndicadorClientRepo {
     private val cliente = IndicadorClient.getInstance()
 
-    fun getListaIndicadores(): Call<Indicadores> {
+    suspend fun getListaIndicadores(): Indicadores {
         return cliente.getIndicadores()
     }
 }

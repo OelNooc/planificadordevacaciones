@@ -1,6 +1,7 @@
 package com.oelnooc.planificadordevacaciones.ui.viewmodel
 
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.oelnooc.planificadordevacaciones.data.local.model.Lugar
@@ -27,6 +28,11 @@ class LugarViewModel(
 
     private val _lugarSeleccionado = MutableStateFlow<Lugar?>(null)
     val lugarSeleccionado: StateFlow<Lugar?> = _lugarSeleccionado
+
+    init {
+        loadLugares()
+        loadIndicadores()
+    }
 
     fun loadLugares() {
         viewModelScope.launch {
@@ -66,19 +72,25 @@ class LugarViewModel(
     fun loadIndicadores() {
         viewModelScope.launch {
             try {
-                val response = indicadorRepo.getListaIndicadores().execute()
-                if (response.isSuccessful) {
-                    _indicadores.value = response.body()
-                } else {
-                    _errorMessage.value = "Error obteniendo indicadores"
-                }
+                val response = indicadorRepo.getListaIndicadores()
+                _indicadores.value = response
+                Log.d("API_Success", "Indicadores cargados correctamente")
+                Log.d("api_result", response.toString())
             } catch (e: Exception) {
-                _errorMessage.value = e.message
+                _errorMessage.value = "Error obteniendo indicadores: ${e.message}"
+                Log.e("error_api_exception", e.message.toString())
+                e.printStackTrace()
             }
         }
     }
 
-    fun abrirGeolocalizacion(lugar: Lugar): Uri {
-        return Uri.parse("geo:0,0?q=${lugar.ubicacion}")
+    fun getDolarValue(): Double {
+        Log.e("valor_dolar", _indicadores.value?.dolar?.valor.toString())
+        return _indicadores.value?.dolar?.valor ?: 900.0
+    }
+
+    fun abrirGeolocalizacion(lugar: Lugar): Pair<Double, Double> {
+        val (lat, lon) = lugar.ubicacion.split(",").map { it.trim().toDoubleOrNull() ?: 0.0 }
+        return Pair(lat, lon)
     }
 }

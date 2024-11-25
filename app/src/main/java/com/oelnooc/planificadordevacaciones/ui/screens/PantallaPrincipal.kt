@@ -20,12 +20,14 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,8 +36,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
-import coil.compose.rememberImagePainter
 import com.oelnooc.planificadordevacaciones.data.local.model.Lugar
+import com.oelnooc.planificadordevacaciones.ui.viewmodel.LugarViewModel
+import com.oelnooc.planificadordevacaciones.util.convertirCLPtoUSD
 
 @Composable
 fun PantallaPrincipal(
@@ -44,7 +47,8 @@ fun PantallaPrincipal(
     onEditarClick: (Lugar) -> Unit,
     onEliminarClick: (Lugar) -> Unit,
     onGeolocalizacionClick: (Lugar) -> Unit,
-    onAñadirClick: () -> Unit
+    onAniadirClick: () -> Unit,
+    lugarViewModel: LugarViewModel
 ) {
     Scaffold(
         content = { paddingValues ->
@@ -64,7 +68,8 @@ fun PantallaPrincipal(
                             onLugarClick = { onLugarClick(lugar) },
                             onEditarClick = { onEditarClick(lugar) },
                             onEliminarClick = { onEliminarClick(lugar) },
-                            onGeolocalizacionClick = { onGeolocalizacionClick(lugar) }
+                            onGeolocalizacionClick = { onGeolocalizacionClick(lugar) },
+                            lugarViewModel = lugarViewModel
                         )
                     }
                 }
@@ -74,7 +79,7 @@ fun PantallaPrincipal(
                     color = Color.Blue,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onAñadirClick() }
+                        .clickable { onAniadirClick() }
                         .padding(16.dp),
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.bodyMedium
@@ -90,8 +95,21 @@ fun LugarCard(
     onLugarClick: () -> Unit,
     onEditarClick: () -> Unit,
     onEliminarClick: () -> Unit,
-    onGeolocalizacionClick: () -> Unit
+    onGeolocalizacionClick: () -> Unit,
+    lugarViewModel: LugarViewModel
 ) {
+    val indicadores = lugarViewModel.indicadores.collectAsState()
+
+    if (indicadores.value == null) {
+        CircularProgressIndicator()
+        return
+    }
+
+    val valorDolar = lugarViewModel.getDolarValue()
+
+    val costoPorNocheUSD = convertirCLPtoUSD(lugar.costoPorNoche.toDouble(), valorDolar)
+    val trasladoUSD = convertirCLPtoUSD(lugar.traslados.toDouble(), valorDolar)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -105,7 +123,6 @@ fun LugarCard(
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Imagen del lugar
                 Image(
                     painter = rememberAsyncImagePainter(model = lugar.foto),
                     contentDescription = lugar.nombre,
@@ -117,17 +134,15 @@ fun LugarCard(
 
                 Spacer(modifier = Modifier.width(16.dp))
 
-                // Información del lugar (nombre, costo por noche, traslado)
                 Column(
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(text = lugar.nombre, style = MaterialTheme.typography.titleMedium)
-                    Text(text = "Costo por noche: ${lugar.costoPorNoche}")
-                    Text(text = "Traslado: ${lugar.traslados}")
+                    Text(text = "Costo por noche: ${lugar.costoPorNoche} CLP - $costoPorNocheUSD USD")
+                    Text(text = "Traslado: ${lugar.traslados} CLP - $trasladoUSD USD")
                 }
             }
 
-            // Fila de íconos (geolocalización, editar, eliminar)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -148,4 +163,3 @@ fun LugarCard(
         }
     }
 }
-

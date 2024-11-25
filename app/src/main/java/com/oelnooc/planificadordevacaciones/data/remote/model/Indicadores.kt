@@ -1,19 +1,19 @@
 package com.oelnooc.planificadordevacaciones.data.remote.model
 
 data class Indicadores(
+    val version: String,
     val autor: String,
-    val bitcoin: Indicador,
+    val fecha: String,
+    val uf: Indicador,
+    val ivp: Indicador,
     val dolar: Indicador,
     val dolar_intercambio: Indicador,
     val euro: Indicador,
-    val fecha: String,
-    val imacec: Indicador,
     val ipc: Indicador,
-    val ivp: Indicador,
+    val utm: Indicador,
+    val imacec: Indicador,
+    val tpm: Indicador,
     val libra_cobre: Indicador,
     val tasa_desempleo: Indicador,
-    val tpm: Indicador,
-    val uf: Indicador,
-    val utm: Indicador,
-    val version: Indicador
+    val bitcoin: Indicador
 )
