@@ -1,4 +1,4 @@
-package com.oelnooc.planificadordevacaciones.data.remote
+package com.oelnooc.planificadordevacaciones.data.remote.repository
 
 import com.oelnooc.planificadordevacaciones.data.remote.client.IndicadorClient
 import com.oelnooc.planificadordevacaciones.data.remote.model.Indicadores
